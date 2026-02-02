@@ -88986,15 +88986,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(7484));
@@ -89009,31 +89000,29 @@ process.on('uncaughtException', e => {
     core.info(`${warningPrefix}${e.message}`);
 });
 // Added early exit to resolve issue with slow post action step:
-function run(earlyExit) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const cacheLock = core.getState(constants_1.State.CachePackageManager);
-            if (cacheLock) {
-                yield cachePackages(cacheLock);
-                if (earlyExit) {
-                    process.exit(0);
-                }
-            }
-            else {
-                core.debug(`Caching for '${cacheLock}' is not supported`);
+async function run(earlyExit) {
+    try {
+        const cacheLock = core.getState(constants_1.State.CachePackageManager);
+        if (cacheLock) {
+            await cachePackages(cacheLock);
+            if (earlyExit) {
+                process.exit(0);
             }
         }
-        catch (error) {
-            core.setFailed(error.message);
+        else {
+            core.debug(`Caching for '${cacheLock}' is not supported`);
         }
-    });
+    }
+    catch (error) {
+        core.setFailed(error.message);
+    }
 }
 exports.run = run;
-const cachePackages = (packageManager) => __awaiter(void 0, void 0, void 0, function* () {
+const cachePackages = async (packageManager) => {
     const state = core.getState(constants_1.State.CacheMatchedKey);
     const primaryKey = core.getState(constants_1.State.CachePrimaryKey);
     const cachePaths = JSON.parse(core.getState(constants_1.State.CachePaths) || '[]');
-    const packageManagerInfo = yield (0, cache_utils_1.getPackageManagerInfo)(packageManager);
+    const packageManagerInfo = await (0, cache_utils_1.getPackageManagerInfo)(packageManager);
     if (!packageManagerInfo) {
         core.debug(`Caching for '${packageManager}' is not supported`);
         return;
@@ -89048,12 +89037,12 @@ const cachePackages = (packageManager) => __awaiter(void 0, void 0, void 0, func
         core.info(`Cache hit occurred on the primary key ${primaryKey}, not saving cache.`);
         return;
     }
-    const cacheId = yield cache.saveCache(cachePaths, primaryKey);
+    const cacheId = await cache.saveCache(cachePaths, primaryKey);
     if (cacheId == -1) {
         return;
     }
     core.info(`Cache saved with the key: ${primaryKey}`);
-});
+};
 run(true);
 
 
@@ -89087,15 +89076,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -89122,21 +89102,21 @@ exports.supportedPackageManagers = {
     yarn: {
         name: 'yarn',
         lockFilePatterns: ['yarn.lock'],
-        getCacheFolderPath: (projectDir) => __awaiter(void 0, void 0, void 0, function* () {
-            const yarnVersion = yield (0, exports.getCommandOutputNotEmpty)(`yarn --version`, 'Could not retrieve version of yarn', projectDir);
+        getCacheFolderPath: async (projectDir) => {
+            const yarnVersion = await (0, exports.getCommandOutputNotEmpty)(`yarn --version`, 'Could not retrieve version of yarn', projectDir);
             core.debug(`Consumed yarn version is ${yarnVersion} (working dir: "${projectDir || ''}")`);
             const stdOut = yarnVersion.startsWith('1.')
-                ? yield (0, exports.getCommandOutput)('yarn cache dir', projectDir)
-                : yield (0, exports.getCommandOutput)('yarn config get cacheFolder', projectDir);
+                ? await (0, exports.getCommandOutput)('yarn cache dir', projectDir)
+                : await (0, exports.getCommandOutput)('yarn config get cacheFolder', projectDir);
             if (!stdOut) {
                 throw new Error(`Could not get yarn cache folder path for ${projectDir}`);
             }
             return stdOut;
-        })
+        }
     }
 };
-const getCommandOutput = (toolCommand, cwd) => __awaiter(void 0, void 0, void 0, function* () {
-    let { stdout, stderr, exitCode } = yield exec.getExecOutput(toolCommand, undefined, Object.assign({ ignoreReturnCode: true }, (cwd && { cwd })));
+const getCommandOutput = async (toolCommand, cwd) => {
+    let { stdout, stderr, exitCode } = await exec.getExecOutput(toolCommand, undefined, { ignoreReturnCode: true, ...(cwd && { cwd }) });
     if (exitCode) {
         stderr = !stderr.trim()
             ? `The '${toolCommand}' command failed with exit code: ${exitCode}`
@@ -89144,17 +89124,17 @@ const getCommandOutput = (toolCommand, cwd) => __awaiter(void 0, void 0, void 0,
         throw new Error(stderr);
     }
     return stdout.trim();
-});
+};
 exports.getCommandOutput = getCommandOutput;
-const getCommandOutputNotEmpty = (toolCommand, error, cwd) => __awaiter(void 0, void 0, void 0, function* () {
+const getCommandOutputNotEmpty = async (toolCommand, error, cwd) => {
     const stdOut = (0, exports.getCommandOutput)(toolCommand, cwd);
     if (!stdOut) {
         throw new Error(error);
     }
     return stdOut;
-});
+};
 exports.getCommandOutputNotEmpty = getCommandOutputNotEmpty;
-const getPackageManagerInfo = (packageManager) => __awaiter(void 0, void 0, void 0, function* () {
+const getPackageManagerInfo = async (packageManager) => {
     if (packageManager === 'npm') {
         return exports.supportedPackageManagers.npm;
     }
@@ -89167,7 +89147,7 @@ const getPackageManagerInfo = (packageManager) => __awaiter(void 0, void 0, void
     else {
         return null;
     }
-});
+};
 exports.getPackageManagerInfo = getPackageManagerInfo;
 /**
  * getProjectDirectoriesFromCacheDependencyPath is called twice during `restoreCache`
@@ -89189,12 +89169,12 @@ exports.resetProjectDirectoriesMemoized = resetProjectDirectoriesMemoized;
  *                              expected to be the result of `core.getInput('cache-dependency-path')`
  * @return list of directories and possible
  */
-const getProjectDirectoriesFromCacheDependencyPath = (cacheDependencyPath) => __awaiter(void 0, void 0, void 0, function* () {
+const getProjectDirectoriesFromCacheDependencyPath = async (cacheDependencyPath) => {
     if (projectDirectoriesMemoized !== null) {
         return projectDirectoriesMemoized;
     }
-    const globber = yield glob.create(cacheDependencyPath);
-    const cacheDependenciesPaths = yield globber.glob();
+    const globber = await glob.create(cacheDependencyPath);
+    const cacheDependenciesPaths = await globber.glob();
     const existingDirectories = cacheDependenciesPaths
         .map(path_1.default.dirname)
         .filter((0, util_1.unique)())
@@ -89204,7 +89184,7 @@ const getProjectDirectoriesFromCacheDependencyPath = (cacheDependencyPath) => __
         core.warning(`No existing directories found containing cache-dependency-path="${cacheDependencyPath}"`);
     projectDirectoriesMemoized = existingDirectories;
     return existingDirectories;
-});
+};
 /**
  * Finds the cache directories configured for the repo if cache-dependency-path is not empty
  * @param packageManagerInfo - an object having getCacheFolderPath method specific to given PM
@@ -89212,26 +89192,26 @@ const getProjectDirectoriesFromCacheDependencyPath = (cacheDependencyPath) => __
  *                              expected to be the result of `core.getInput('cache-dependency-path')`
  * @return list of files on which the cache depends
  */
-const getCacheDirectoriesFromCacheDependencyPath = (packageManagerInfo, cacheDependencyPath) => __awaiter(void 0, void 0, void 0, function* () {
-    const projectDirectories = yield getProjectDirectoriesFromCacheDependencyPath(cacheDependencyPath);
-    const cacheFoldersPaths = yield Promise.all(projectDirectories.map((projectDirectory) => __awaiter(void 0, void 0, void 0, function* () {
-        const cacheFolderPath = yield packageManagerInfo.getCacheFolderPath(projectDirectory);
+const getCacheDirectoriesFromCacheDependencyPath = async (packageManagerInfo, cacheDependencyPath) => {
+    const projectDirectories = await getProjectDirectoriesFromCacheDependencyPath(cacheDependencyPath);
+    const cacheFoldersPaths = await Promise.all(projectDirectories.map(async (projectDirectory) => {
+        const cacheFolderPath = await packageManagerInfo.getCacheFolderPath(projectDirectory);
         core.debug(`${packageManagerInfo.name}'s cache folder "${cacheFolderPath}" configured for the directory "${projectDirectory}"`);
         return cacheFolderPath;
-    })));
+    }));
     // uniq in order to do not cache the same directories twice
     return cacheFoldersPaths.filter((0, util_1.unique)());
-});
+};
 /**
  * Finds the cache directories configured for the repo ignoring cache-dependency-path
  * @param packageManagerInfo - an object having getCacheFolderPath method specific to given PM
  * @return list of files on which the cache depends
  */
-const getCacheDirectoriesForRootProject = (packageManagerInfo) => __awaiter(void 0, void 0, void 0, function* () {
-    const cacheFolderPath = yield packageManagerInfo.getCacheFolderPath();
+const getCacheDirectoriesForRootProject = async (packageManagerInfo) => {
+    const cacheFolderPath = await packageManagerInfo.getCacheFolderPath();
     core.debug(`${packageManagerInfo.name}'s cache folder "${cacheFolderPath}" configured for the root directory`);
     return [cacheFolderPath];
-});
+};
 /**
  * A function to find the cache directories configured for the repo
  * currently it handles only the case of PM=yarn && cacheDependencyPath is not empty
@@ -89240,14 +89220,14 @@ const getCacheDirectoriesForRootProject = (packageManagerInfo) => __awaiter(void
  *                              expected to be the result of `core.getInput('cache-dependency-path')`
  * @return list of files on which the cache depends
  */
-const getCacheDirectories = (packageManagerInfo, cacheDependencyPath) => __awaiter(void 0, void 0, void 0, function* () {
+const getCacheDirectories = async (packageManagerInfo, cacheDependencyPath) => {
     // For yarn, if cacheDependencyPath is set, ask information about cache folders in each project
     // folder satisfied by cacheDependencyPath https://github.com/actions/setup-node/issues/488
     if (packageManagerInfo.name === 'yarn' && cacheDependencyPath) {
         return getCacheDirectoriesFromCacheDependencyPath(packageManagerInfo, cacheDependencyPath);
     }
     return getCacheDirectoriesForRootProject(packageManagerInfo);
-});
+};
 exports.getCacheDirectories = getCacheDirectories;
 /**
  * A function to check if the directory is a yarn project configured to manage
@@ -89259,7 +89239,7 @@ exports.getCacheDirectories = getCacheDirectories;
  *  - if local cache is not explicitly enabled (not yarn3), return false
  *  - return true otherwise
  */
-const projectHasYarnBerryManagedDependencies = (directory) => __awaiter(void 0, void 0, void 0, function* () {
+const projectHasYarnBerryManagedDependencies = async (directory) => {
     const workDir = directory || process.env.GITHUB_WORKSPACE || '.';
     core.debug(`check if "${workDir}" has locally managed yarn3 dependencies`);
     // if .yarn/cache directory exists the cache is managed by version control system
@@ -89270,7 +89250,7 @@ const projectHasYarnBerryManagedDependencies = (directory) => __awaiter(void 0, 
         return Promise.resolve(false);
     }
     // NOTE: yarn1 returns 'undefined' with return code = 0
-    const enableGlobalCache = yield (0, exports.getCommandOutput)('yarn config get enableGlobalCache', workDir);
+    const enableGlobalCache = await (0, exports.getCommandOutput)('yarn config get enableGlobalCache', workDir);
     // only local cache is not managed by yarn
     const managed = enableGlobalCache.includes('false');
     if (managed) {
@@ -89281,7 +89261,7 @@ const projectHasYarnBerryManagedDependencies = (directory) => __awaiter(void 0, 
         core.debug(`"${workDir}" dependencies are not managed by yarn 3 locally`);
         return false;
     }
-});
+};
 /**
  * A function to report the repo contains Yarn managed projects
  * @param packageManagerInfo - used to make sure current package manager is yarn
@@ -89289,15 +89269,15 @@ const projectHasYarnBerryManagedDependencies = (directory) => __awaiter(void 0, 
  *                              expected to be the result of `core.getInput('cache-dependency-path')`
  * @return - true if all project directories configured to be Yarn managed
  */
-const repoHasYarnBerryManagedDependencies = (packageManagerInfo, cacheDependencyPath) => __awaiter(void 0, void 0, void 0, function* () {
+const repoHasYarnBerryManagedDependencies = async (packageManagerInfo, cacheDependencyPath) => {
     if (packageManagerInfo.name !== 'yarn')
         return false;
     const yarnDirs = cacheDependencyPath
-        ? yield getProjectDirectoriesFromCacheDependencyPath(cacheDependencyPath)
+        ? await getProjectDirectoriesFromCacheDependencyPath(cacheDependencyPath)
         : [''];
-    const isManagedList = yield Promise.all(yarnDirs.map(projectHasYarnBerryManagedDependencies));
+    const isManagedList = await Promise.all(yarnDirs.map(projectHasYarnBerryManagedDependencies));
     return isManagedList.every(Boolean);
-});
+};
 exports.repoHasYarnBerryManagedDependencies = repoHasYarnBerryManagedDependencies;
 function isGhes() {
     const ghUrl = new URL(process.env['GITHUB_SERVER_URL'] || 'https://github.com');
@@ -89379,15 +89359,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -89399,7 +89370,6 @@ const io = __importStar(__nccwpck_require__(4994));
 const fs_1 = __importDefault(__nccwpck_require__(9896));
 const path_1 = __importDefault(__nccwpck_require__(6928));
 function getNodeVersionFromFile(versionFilePath) {
-    var _a, _b, _c, _d, _e;
     if (!fs_1.default.existsSync(versionFilePath)) {
         throw new Error(`The specified node version file at: ${versionFilePath} does not exist`);
     }
@@ -89411,15 +89381,15 @@ function getNodeVersionFromFile(versionFilePath) {
         if (typeof manifest === 'object' && !!manifest) {
             // Support Volta.
             // See https://docs.volta.sh/guide/understanding#managing-your-project
-            if ((_a = manifest.volta) === null || _a === void 0 ? void 0 : _a.node) {
+            if (manifest.volta?.node) {
                 return manifest.volta.node;
             }
-            if ((_b = manifest.engines) === null || _b === void 0 ? void 0 : _b.node) {
+            if (manifest.engines?.node) {
                 return manifest.engines.node;
             }
             // Support Volta workspaces.
             // See https://docs.volta.sh/advanced/workspaces
-            if ((_c = manifest.volta) === null || _c === void 0 ? void 0 : _c.extends) {
+            if (manifest.volta?.extends) {
                 const extendedFilePath = path_1.default.resolve(path_1.default.dirname(versionFilePath), manifest.volta.extends);
                 core.info('Resolving node version from ' + extendedFilePath);
                 return getNodeVersionFromFile(extendedFilePath);
@@ -89436,49 +89406,45 @@ function getNodeVersionFromFile(versionFilePath) {
             return null;
         }
     }
-    catch (_f) {
+    catch {
         core.info('Node version file is not JSON file');
     }
     const found = contents.match(/^(?:node(js)?\s+)?v?(?<version>[^\s]+)$/m);
-    return (_e = (_d = found === null || found === void 0 ? void 0 : found.groups) === null || _d === void 0 ? void 0 : _d.version) !== null && _e !== void 0 ? _e : contents.trim();
+    return found?.groups?.version ?? contents.trim();
 }
 exports.getNodeVersionFromFile = getNodeVersionFromFile;
-function printEnvDetailsAndSetOutput() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('Environment details');
-        const promises = ['node', 'npm', 'yarn', 'pnpm'].map((tool) => __awaiter(this, void 0, void 0, function* () {
-            const pathTool = yield io.which(tool, false);
-            const output = pathTool ? yield getToolVersion(tool, ['--version']) : '';
-            return { tool, output };
-        }));
-        const tools = yield Promise.all(promises);
-        tools.forEach(({ tool, output }) => {
-            if (tool === 'node') {
-                core.setOutput(`${tool}-version`, output);
-            }
-            core.info(`${tool}: ${output}`);
-        });
-        core.endGroup();
+async function printEnvDetailsAndSetOutput() {
+    core.startGroup('Environment details');
+    const promises = ['node', 'npm', 'yarn', 'pnpm'].map(async (tool) => {
+        const pathTool = await io.which(tool, false);
+        const output = pathTool ? await getToolVersion(tool, ['--version']) : '';
+        return { tool, output };
     });
+    const tools = await Promise.all(promises);
+    tools.forEach(({ tool, output }) => {
+        if (tool === 'node') {
+            core.setOutput(`${tool}-version`, output);
+        }
+        core.info(`${tool}: ${output}`);
+    });
+    core.endGroup();
 }
 exports.printEnvDetailsAndSetOutput = printEnvDetailsAndSetOutput;
-function getToolVersion(tool, options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const { stdout, stderr, exitCode } = yield exec.getExecOutput(tool, options, {
-                ignoreReturnCode: true,
-                silent: true
-            });
-            if (exitCode > 0) {
-                core.info(`[warning]${stderr}`);
-                return '';
-            }
-            return stdout.trim();
-        }
-        catch (err) {
+async function getToolVersion(tool, options) {
+    try {
+        const { stdout, stderr, exitCode } = await exec.getExecOutput(tool, options, {
+            ignoreReturnCode: true,
+            silent: true
+        });
+        if (exitCode > 0) {
+            core.info(`[warning]${stderr}`);
             return '';
         }
-    });
+        return stdout.trim();
+    }
+    catch (err) {
+        return '';
+    }
 }
 const unique = () => {
     const encountered = new Set();
